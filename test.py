@@ -1,19 +1,64 @@
-from ggame import App, Color, LineStyle, Sprite
-from ggame import RectangleAsset, CircleAsset, EllipseAsset, PolygonAsset
+from ggame import App, ImageAsset, Sprite, MouseEvent
+from random import random, randint
 
-# Three primary colors with no transparency (alpha = 1.0)
-red = Color(0xff0000, 1.0)
-green = Color(0x00ff00, 1.0)
-blue = Color(0x0000ff, 1.0)
-black = Color(0x000000, 1.0)
+class Bunny(Sprite):
 
-# Define a line style that is a thin (1 pixel) wide black line
-thinline = LineStyle(1, black)
-# A graphics asset that represents a rectangle
-rectangle = RectangleAsset(50, 20, thinline, blue)
+    asset = ImageAsset("ggame/bunny.png")
 
-# Now display a rectangle
-Sprite(rectangle)
+    def __init__(self, position):
+        super().__init__(Bunny.asset, position)
+        # register mouse events
+        self.app.listenMouseEvent(MouseEvent.mousedown, self.mousedown)
+        self.app.listenMouseEvent(MouseEvent.mouseup, self.mouseup)
+        self.app.listenMouseEvent(MouseEvent.mousemove, self.mousemove)
+        self.dragging = False
 
-myapp = App()
-myapp.run()
+
+    def step(self):
+        """
+        Every now and then a bunny hops...
+        """
+        if random() < 0.001:
+            self.x += randint(-50,50)
+            self.y += randint(-50,50)
+
+    def mousedown(self, event):
+        # capture any mouse down within 50 pixels
+        self.deltax = event.x - (self.x + self.width//2) 
+        self.deltay = event.y - (self.y + self.height//2)
+        if abs(self.deltax) < 50 and abs(self.deltay) < 50:
+            self.dragging = True
+            # only drag one bunny at a time - consume the event
+            event.consumed = True
+
+    def mousemove(self, event):
+        if self.dragging:
+            self.x = event.x - self.deltax - self.width//2
+            self.y = event.y - self.deltay - self.height//2
+            event.consumed = True
+
+    def mouseup(self, event):
+        if self.dragging:
+            self.dragging = False
+            event.consumed = True
+
+
+class DemoApp(App):
+
+    def __init__(self):
+        super().__init__(500, 500)
+        for i in range(10):
+            Bunny((randint(50,450),randint(50,450)))
+
+    def step(self):
+        """
+        Override step to perform action on each frame update
+        """
+        for bunny in self.spritelist:
+            bunny.step()
+
+
+# Create the app
+app = DemoApp()  
+# Run the app
+app.run()
